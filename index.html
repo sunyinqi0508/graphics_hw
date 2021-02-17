@@ -43,7 +43,7 @@
 <script id='my_fragment_shader' type='x-shader/x-fragment'>
 
  uniform float uTime;   // TIME, IN SECONDS
-
+ uniform int flags;
  varying vec3 vPos;     // -1 < vPos.x < +1
                         // -1 < vPos.y < +1
                         //      vPos.z == 0
@@ -135,8 +135,13 @@ uniform sampler2D uSampler;
       float quo = float(int(tex_x/_2pir));
       tex_x = (tex_x - quo * _2pir) / _2pir;
       //*TEXTURE MAPPING
+      vec3 texture_color;
+      if(flags /*& 0x1*/ == 0)
+         texture_color = texture2D(uSampler, vec2(tex_x, ((R - y)/(2.*R)))).xyz;
+      else
+         texture_color = vec3(.0841, .5329, .9604);
       color = lcolor * 
-            (cloud + texture2D(uSampler, vec2(tex_x, ((R - y)/(2.*R)))).xyz) + specularlight;
+            (cloud + texture_color) + specularlight;
        
     }
     //*CALCULATING LIGHTING AND SHADOWS FOR THE BACKGROUND
@@ -236,15 +241,18 @@ that you are seeing now.</p>
    <li>I used Perlin Noise to generate fake clouds.</li>
    <li> I modified the lighting so that the light source won't move with the sphere and 
       the lighting will change when the sphere moves. I also added specular lights to make it shinier.</li>
-   <li> Finally, I tried to add some 'soft shadow' to it. I used a mix of methods inspired by Ambient Occlusion and Ray Tracing.<br>
+   <li> I tried to add some 'soft shadow' to it. I used a mix of methods inspired by Ambient Occlusion and Ray Tracing.<br>
       <ul>
          <li>The Ambient lights and diffusion lights are reduced with respect to the distance between the background point and the sphere.</li>
          <li>The specular light of the background wall is eliminated and the diffusion factor is reduced when the ray shooting from the background point 
          towards the light source or from the background point towards the camera position intersect with the sphere.</li>
       </ul>
-   <li>Also, I made some small changes like changing R over time and refined the UI a little bit. I used 
+   <li>I added basic interactions such as press 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
+      Just a proof of concept.</li>   
+   <li>Finally, I made some small changes like changing R over time and refined the UI a little bit. I used 
       <a href="https://ace.c9.io">Ace</a> for code highlighting and autocompletion on the edit panel.</li>
    <li>Comments begin with '//*' are added by me.</li>
+   <li>Repo from <a href="https://github.com/sunyinqi0508/graphics_hw1">Github.</a></li>
    </li>
  </ul>
 <p>
@@ -257,20 +265,20 @@ that you are seeing now.</p>
 <script>
 
 // CREATE THE HTML DOCUMENT
-
+let flags = 0x0;
 let vs = my_vertex_shader.innerHTML,
     fs = my_fragment_shader.innerHTML;
     fs = fs.substring(1, fs.length);
 
 document.body.innerHTML = [''
-   ,'<margin-left:750px font size=8 color=#909090>' + my_title.innerHTML
+   ,'<font size=7 color=#909090>' + my_title.innerHTML
    ,'<TABLE cellspacing=0 cellpadding=0><TR>'
    ,'<td><font color=red size=5><div id=errorMessage></div></font></td>'
    ,'</TR><TR>'
    ,'<table cellspacing=0>'
    ,'<tr>'
    ,'<td valign=top>'
-   ,'<div id="ace" style="width:800px;height:1650px;"></div>'
+   ,'<div id="ace" style="width:800px;height:1780px;"></div>'
    ,'</td><td valign=top>' + document.body.innerHTML  + '<div style=\'font-size:25px\'>' + my_instructions.innerHTML + '</div>' + '</td>'
    ,'</tr></table>'
    ,'</TR></TABLE>'
@@ -303,15 +311,46 @@ editor.session.on('change', function(delta) {
    canvas1.setShaders(vs, editor.getSession().getValue());
    
 });
+let lastTime = Date.now();
+let animating = true;
+let ctrl = false;
+canvas1.addEventListener('click',function(ev){
+   if(animating)
+      lastTime = Date.now();
+   else
+      startTime += Date.now() - lastTime;   
+   animating = !animating;
+});
+document.addEventListener('keydown',(e)=>{
 
+if(e.code.startsWith('Control'))
+{
+   ctrl = true;
+}
+else if(ctrl && e.code == 'KeyT')
+   {
+      mask = 0x1;
+      flags = flags&!mask | (!(flags&mask)*mask);
+      setUniform('1i', 'flags', flags);
+   }
+});
 
+document.addEventListener('keyup',(e)=>{
+   if(e.code.startsWith('Control'))
+   {
+      ctrl = false;
+   }
+});
 // SET THE CURRENT TIME IN SECONDS BEFORE RENDERING EACH FRAME.
 
 let startTime = Date.now();
 
 function animate(gl) {
-   let time = (Date.now() - startTime) / 1000;
-   setUniform('1f', 'uTime', time);
+   if(animating)
+      setUniform('1f', 'uTime', (Date.now() - startTime) / 1000);
+   else
+      setUniform('1f', 'uTime', (lastTime - startTime) / 1000);
+
 }
 
 // START EVERYTHING.
