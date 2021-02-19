@@ -111,7 +111,7 @@ uniform sampler2D uSampler;
        lcolor += diffuse * max(0., dot(N, LDir)) * LCol;
        //*SPECULAR LIGHTS ARE ADDED
        specularlight = specular * 
-                  max(0., pow(dot(2.*dot(N, LDir) * N - LDir, VDir),3.)) * LCol;
+                  pow(max(0.,dot(2.*dot(N, LDir) * N - LDir, VDir)),3.) * LCol;
        // ROTATE THE TEXTURE OVER TIME.
  
        float angle = 0.4 * uTime;
@@ -206,7 +206,7 @@ uniform sampler2D uSampler;
 
       lcolor += 1.2*diffuse * max(0., dot(N, LDir)) * LCol;
       specularlight = 0.3*specular * 
-            max(0., pow(dot(2.*dot(N, LDir) * N - LDir, VDir),32.)) * LCol;
+            pow(max(0., dot(2.*dot(N, LDir) * N - LDir, VDir)),32.) * LCol;
       
       color = color * lcolor + specularlight;
     }
@@ -247,12 +247,12 @@ that you are seeing now.</p>
          <li>The specular light of the background wall is eliminated and the diffusion factor is reduced when the ray shooting from the background point 
          towards the light source or from the background point towards the camera position intersect with the sphere.</li>
       </ul>
-   <li>I added basic interactions such as press 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
+   <li>I added basic interactions such as press ctrl + 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
       Just a proof of concept.</li>   
    <li>Finally, I made some small changes like changing R over time and refined the UI a little bit. I used 
       <a href="https://ace.c9.io">Ace</a> for code highlighting and autocompletion on the edit panel.</li>
    <li>Comments begin with '//*' are added by me.</li>
-   <li>Repo from <a href="https://github.com/sunyinqi0508/graphics_hw1">Github.</a></li>
+   <li>Repo on <a href="https://github.com/sunyinqi0508/graphics_hw1">Github</a>.</li>
    </li>
  </ul>
 <p>

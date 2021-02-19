@@ -77,7 +77,7 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
    setTimeout(function () {
       try {
-         canvas.gl = canvas.getContext('experimental-webgl');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
+         canvas.gl = canvas.getContext('webgl2');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
       } catch (e) { throw 'Sorry, your browser does not support WebGL.'; }
 
       canvas.setShaders = function (vertexShader, fragmentShader) {         // Add the vertex and fragment shaders:
