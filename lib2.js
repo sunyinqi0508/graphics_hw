@@ -24,10 +24,22 @@ let errorMsg = '';
 // Initialize a texture and load an image.
 // When the image finished loading copy it into the texture.
 //
-function loadTexture(gl, url) {
-   const texture = gl.createTexture();
-   gl.bindTexture(gl.TEXTURE_2D, texture);
+function getBlob(data) {
+   let bytes = new Array(data.length);
+   for (let i = 0; i < data.length; i++) {
+     bytes[i] = data.charCodeAt(i);
+   } 
+   return new Blob([new Uint8Array(bytes)]);
+ }
+let texture = [], gl, program;
+let textures = [0, 1]; 
 
+function loadTexture(gl, url, i) {
+   if (texture[i] == null)
+   {
+      texture[i] = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture[i]);
+   }
    // Because images have to be downloaded over the internet
    // they might take a moment until they are ready.
    // Until then put a single pixel in the texture so we can
@@ -47,27 +59,31 @@ function loadTexture(gl, url) {
 
    const image = new Image();
    image.onload = function () {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+      errorMessage.innerHTML += image.src + i;
+      gl.bindTexture(gl.TEXTURE_2D, texture[i]);
       gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
          srcFormat, srcType, image);
-
+   
       // WebGL1 has different requirements for power of 2 images
       // vs non power of 2 images so check if the image is a
       // power of 2 in both dimensions.
       if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
          // Yes, it's a power of 2. Generate mips.
          gl.generateMipmap(gl.TEXTURE_2D);
+         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       } else {
          // No, it's not a power of 2. Turn off mips and set
          // wrapping to clamp to edge
          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+         gl.activeTexture(gl.TEXTURE0+i);
+         gl.bindTexture(gl.TEXTURE_2D, texture[i]);
       }
    };
    image.src = url;
-
-   return texture;
+   gl.activeTexture(gl.TEXTURE0+i);
+   gl.bindTexture(gl.TEXTURE_2D, texture[i]);
 }
 
 function isPowerOf2(value) {
@@ -82,7 +98,8 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
       canvas.setShaders = function (vertexShader, fragmentShader) {         // Add the vertex and fragment shaders:
 
-         let gl = this.gl, program = gl.createProgram();                        // Create the WebGL program.
+         gl = this.gl;
+         program = gl.createProgram();                        // Create the WebGL program.
 
          function addshader(type, src) {                                        // Create and attach a WebGL shader.
             function spacer(color, width, height) {
@@ -131,14 +148,29 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
             console.log('Could not link the shader program!');
          gl.useProgram(program);
          gl.program = program;
+         const ns = 2;
+         errorMessage.innerHTML += gl.TEXTURE0 + ' ';
+         errorMessage.innerHTML += gl.TEXTURE1;
 
-         let texture = loadTexture(gl, './earthmap1k.jpg') //Texture loading.
-         // Tell WebGL we want to affect texture unit 0
-         gl.activeTexture(gl.TEXTURE0);
-         // Bind the texture to texture unit 0
-         gl.bindTexture(gl.TEXTURE_2D, texture);
-         // Tell the shader we bound the texture to texture unit 0
-         gl.uniform1i(gl.getUniformLocation(program, 'uSampler'), 0);
+         // for(let i = 0; i < 2; ++i){
+         //    let texture = loadTexture(gl, './'+(i+1)+'.jpg') //Texture loading.
+         //    // Tell WebGL we want to affect texture unit 0
+         //    if( i == 0 )
+         //       gl.activeTexture(gl.TEXTURE0);
+         //    else 
+         //       gl.activeTexture(gl.TEXTURE1);
+
+         //    // Bind the texture to texture unit 0
+         //    gl.bindTexture(gl.TEXTURE_2D, texture);
+         //    // Tell the shader we bound the texture to texture unit 0
+         //    textures[i] = i;
+         // }
+         loadTexture(gl, './1.jpg', 0); //Texture loading.
+         loadTexture(gl, './2.jpg', 1); //Texture loading.
+         gl.uniform1iv(gl.getUniformLocation(program, 'uSampler'), textures);
+
+
+         
 
 
          gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());                     // Create a square as a triangle strip
@@ -151,7 +183,6 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
       }
 
       canvas.setShaders(vertexShader, fragmentShader);                     // Initialize everything,
-
       setInterval(function () {                                             // Start the animation loop.
          gl = canvas.gl;
          if (gl.startTime === undefined)                                            // First time through,
@@ -167,7 +198,6 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
 function animate() { }
 
-let gl;
 function setUniform(type, name, a, b, c, d, e, f) {
    let loc = gl.getUniformLocation(gl.program, name);
    (gl['uniform' + type])(loc, a, b, c, d, e, f);
