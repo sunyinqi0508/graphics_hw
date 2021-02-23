@@ -100,6 +100,13 @@ let vs = my_vertex_shader.innerHTML;
       // START EVERYTHING.
       gl_start(canvas1, vs, fs);
       editor.getSession().setValue(fs);
+      editor.session.on('change', function(delta) {
+         if(typeof canvas1.setShaders === "function")
+         {
+            canvas1.setShaders(vs, editor.getSession().getValue());
+            setUniform('1i', 'flags', flags);
+         }
+      });
     }
    client.send();
 document.body.innerHTML = [''
@@ -134,10 +141,7 @@ editor.setOptions({
 });
 editor.setAutoScrollEditorIntoView(true);
 // REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
-editor.session.on('change', function(delta) {
-   if(typeof canvas1.setShaders === "function")
-      canvas1.setShaders(vs, editor.getSession().getValue());
-});
+
 let lastTime = Date.now();
 let animating = true;
 let ctrl = false;
@@ -156,7 +160,7 @@ document.addEventListener('keydown',(e)=>{
    else if(ctrl && e.code == 'KeyT')
    {
       mask = 0x1;
-      flags = flags&!mask | (!(flags&mask)?0:mask);
+      flags = flags&!mask | (!(flags&mask)?mask:0);
       setUniform('1i', 'flags', flags);
    }
    else if (ctrl && e.code == 'KeyS')
