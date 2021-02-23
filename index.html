@@ -39,23 +39,23 @@
 
 
 <!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
-
-<script src="shader.frag" id='my_fragment_shader' type='x-shader/x-fragment'> </script>
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag LOADED IN lib2.js -------->
+<!--script src="shader.frag" id='my_fragment_shader' type='x-shader/x-fragment'> </script>
 
 
 <!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
 
 <script id='my_title' type='text/html'>
-The Bouncing Earth
+Solar RTX
 </script>
 
 
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#909090>
-<p style="font-size:30px; ">This is a description 
-of my cool homework 
-that you are seeing now.</p>
+<p style="font-size:30px; ">I am implementing ray tracing<br>
+   to multiple spheres with a single<br>
+   light source and Phong shading.
 <p>
 <i style="font-size:25px;">Here is how it works:</i>
 <ul>
@@ -86,18 +86,19 @@ that you are seeing now.</p>
 </script>
 
 
-<!!-------- YOU PROBABLY DON'T WANT TO CHANGE ANYTHING BELOW FOR NOW -------->
+<!!-------- YOU PROBABLY WANT TO CHANGE ANYTHING BELOW RIGHT NOW -------->
    
 <script>
 
 // CREATE THE HTML DOCUMENT
 let flags = 0x0;
 let vs = my_vertex_shader.innerHTML;
+    //* LOADING FRAGMENT SHADER
     var client = new XMLHttpRequest();
     client.open('GET', './shader.frag');
     client.onloadend = function() {
       fs = (client.responseText);
-      // START EVERYTHING.
+      //* START EVERYTHING AFTER FRAGMENT SHADER IS DOWNLOADED.
       gl_start(canvas1, vs, fs);
       editor.getSession().setValue(fs);
       editor.session.on('change', function(delta) {
