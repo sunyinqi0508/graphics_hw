@@ -1,4 +1,4 @@
-<script src=lib1.js></script>
+<script src=lib2.js></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js" crossorigin="anonymous"></script>
 <style>
@@ -21,7 +21,7 @@
  </style>
 <body bgcolor=white text=black link=black alink=blue vlink=blue>
 <center>
-<canvas id='canvas1' width=600 height=600></canvas>
+<canvas id='canvas1' style="width: 600px; height:600px;" width=1200 height=1200></canvas>
 </center>
 </body>
 
@@ -39,197 +39,22 @@
 
 
 <!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
-
-<script id='my_fragment_shader' type='x-shader/x-fragment'>
-
- uniform float uTime;   // TIME, IN SECONDS
- uniform int flags;
- varying vec3 vPos;     // -1 < vPos.x < +1
-                        // -1 < vPos.y < +1
-                        //      vPos.z == 0
-
-uniform sampler2D uSampler;
- // YOU MUST DEFINE A main() FUNCTION.
-
- void main() {
-
- ////////////////////////////////////////////////
- //
- // HERE, FOR YOUR HOMEWORK, YOU CAN WRITE ANY
- // CODE YOU LIKE
-    
-    //DEFINE A COLOR FOR THIS FRAGMENT.
-
-    // LIGHT DIRECTION AND COLOR
-
-    vec3 LDir = vec3(1, 1, 1);
-    vec3 LCol = vec3(1.,.98,.9);
-    vec3 VDir = vec3(0., 0., 1.);
-
-    float R = 0.5 + 0.3*sin(uTime/10.);
-    // vPos IS THE 3D LOCATION OF THIS FRAGMENT.
-
-    // SURFACE REFLECTANCE PROPERTIES
-
-    vec3 diffuse = vec3(.7,.7,.6);
-    vec3 ambient = vec3(.1,.1,.09);
-    vec3 specular = vec3(.35,.35,.3);
-    // CREATE A WACKY BACKGROUND PATTERN.
-    
-    vec3 color = vec3(.5 + .5 * sin(20. * vPos.x + sin(10. * vPos.y + 5. * uTime)),
-                      .5,
-                      .5 + .5 * sin(20. * vPos.y + sin(10. * vPos.x + 5. * uTime)));
-    vec3 specularlight; //specular light should disregard object color.
-   
-    float x = vPos.x;
-    float y = vPos.y;
-
-    // CREATE BOUNCING ANIMATION.
-    
-    y += .5 - 2. * abs(.5 * sin(uTime));
-
-    // FIGURE OUT WHETHER THIS PIXEL IS ON THE SPHERE.
-
-    float rr = x * x + y * y;
-
-    // IF SO, THEN SHADE THE SPHERE.
-
-    if (rr < R*R) {
-
-       // COMPUTE THE z AND NORMAL OF THE SPHERE.
-
-       float z = R * sqrt(1. - rr/(R*R));
-       vec3 N = vec3(x,y,z) / R;
-
-       // APPLY SHADING AND LIGHTING.
-       vec3 realVPos = vec3(vPos.x, vPos.y, z);
-       //*DIRECTIONS ARE NORMALIZED TO GET THE CORRECT PHONG LIGHTING
-       LDir = normalize(LDir - realVPos);
-       VDir = normalize(VDir - realVPos);
-
-       vec3 lcolor = ambient;
-       lcolor += diffuse * max(0., dot(N, LDir)) * LCol;
-       //*SPECULAR LIGHTS ARE ADDED
-       specularlight = specular * 
-                  pow(max(0.,dot(2.*dot(N, LDir) * N - LDir, VDir)),3.) * LCol;
-       // ROTATE THE TEXTURE OVER TIME.
- 
-       float angle = 0.4 * uTime;
-       float px =  cos(angle) * N.x + sin(angle) * N.z;
-       float pz = -sin(angle) * N.x + cos(angle) * N.z;
-       vec3 P = vec3(px, N.y, pz);
-    
-       // APPLY PROCEDURAL NOISE TEXTURE.
-
-       float cloud = min(0.85, max(-0.05, 2. * noise(1.1 * P)));
-       //const float rspeed = 10.;
-      //*CALCULATING THE TEXTURE COORDINATE.
-      const float pi = 3.14159265359;
-      float tex_x = acos(abs(x)/sqrt(R*R-y*y));
-      if(x > 0.)
-         tex_x = pi - tex_x;
-      tex_x = R * tex_x;
-      tex_x *= 1.5708;//*Correct aspect ratio of texture 2:1 -> 2pir:2r
-      tex_x = tex_x + float(uTime)*R;
-      float _2pir = 2. * pi * R;
-      float quo = float(int(tex_x/_2pir));
-      tex_x = (tex_x - quo * _2pir) / _2pir;
-      //*TEXTURE MAPPING
-      vec3 texture_color;
-      if(flags /*& 0x1*/ == 0)
-         texture_color = texture2D(uSampler, vec2(tex_x, ((R - y)/(2.*R)))).xyz;
-      else
-         texture_color = vec3(.0841, .5329, .9604);
-      color = lcolor * 
-            (cloud + texture_color) + specularlight;
-       
-    }
-    //*CALCULATING LIGHTING AND SHADOWS FOR THE BACKGROUND
-    else{
-      vec3 realVPos = vec3(vPos.x, vPos.y, -1.);
-      vec3 N = vec3(0., 0., 1.);
-      vec3 C = vec3(0., vPos.y - y, 0.);
-      // APPLY SHADING AND LIGHTING.
-
-
-      vec3 lcolor = 6.*ambient;
-      //*CALCULATING DISTANCE BETWEEN SPHERE CENTER TO THE RAY 
-       //BETWEEN THE POINT TO LIGHT SOURCE
-      vec3 LV = realVPos - LDir;
-      vec3 LC = C - LDir;
-      vec3 VC = C - realVPos;
-      float lLV = dot(LV, LV);
-      float lLC = dot(LC, LC);
-      float lVC = dot(VC, VC);
-      float RR = R*R;
-      float d_VCVL = -dot(VC, LV);
-      float dist = min(lLC, lVC);
-      if (d_VCVL > 0.)
-         dist = min(dist, lVC - d_VCVL*d_VCVL/lLV);
-
-      //*CALCULATE DISTANCE BETWEEN SPHERE CENTER TO THE RAY BETWEEN POINT TO CAMERA
-      vec3 EV = realVPos - VDir;
-      vec3 EC = C - VDir;
-      float lEV = dot(EV, EV);
-      float lEC = dot(EC, EC);
-      float d_VCVE = -dot(VC, EV);
-      float dist2 = min(lEC, lVC);
-      if (d_VCVE > 0.)
-         dist2 = min(dist2, lVC - d_VCVE*d_VCVE/lEV);
-      //*AMBIENT LIGHT WILL DECAY WHEN BACKGROUND POINT IS CLOSER TO THE SPHERE
-      //*FIRST THE DISTANCE IS NORMALIZED, THEN I CURVED IT WITH LOGISTIC FUNCTION
-      float aratio0 = 1./(1.+pow(2.71828,15.*(.2-(sqrt(lVC) - R - .4806)/1.381)));
-      lcolor *= aratio0;
-      diffuse *= pow(aratio0, 0.3);
-      //*TEST IF CAMERA CAN SEE THE POINT
-      if(dist2 < RR)
-      {
-         specular *= 0.;
-         float d = sqrt(dist2);
-         float ratio = pow(2., sqrt(dist2)/R) - 1.;
-         diffuse *= ratio;
-      }
-      //*TEST IF THE LIGHT CAN REACH THE BACKGROUND POINT DIRECTLY
-      if(dist < RR)
-      {
-         specular *= 0.;
-         float ratio = pow(2.7, sqrt(dist)/R) - 1.7;
-         float aratio = pow(2., sqrt(dist)/R) - 1.;
-
-         if(ratio < 0.)
-            ratio = 0.;
-         diffuse *= ratio;
-         lcolor *= aratio;
-      }
-      LDir = normalize(LDir - realVPos);
-      VDir = normalize(VDir - realVPos); 
-
-      lcolor += 1.2*diffuse * max(0., dot(N, LDir)) * LCol;
-      specularlight = 0.3*specular * 
-            pow(max(0., dot(2.*dot(N, LDir) * N - LDir, VDir)),32.) * LCol;
-      
-      color = color * lcolor + specularlight;
-    }
-    // APPLY GAMMA CORRECTION AND SET THE PIXEL COLOR.
-
-    gl_FragColor = vec4(sqrt(color), 1.0);
- }
-</script>
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag LOADED IN lib2.js -------->
+<!--script src="shader.frag" id='my_fragment_shader' type='x-shader/x-fragment'> </script>
 
 
 <!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
 
 <script id='my_title' type='text/html'>
-The Bouncing Earth
+Solar RTX
 </script>
 
 
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#909090>
-<p style="font-size:30px; ">This is a description 
-of my cool homework 
-that you are seeing now.</p>
+<p style="font-size:30px; ">In this homework, I implemented Global illumination w/ 
+   Realtime Recursive Ray Tracing! 
 <p>
 <i style="font-size:25px;">Here is how it works:</i>
 <ul>
@@ -245,7 +70,7 @@ that you are seeing now.</p>
       <ul>
          <li>The Ambient lights and diffusion lights are reduced with respect to the distance between the background point and the sphere.</li>
          <li>The specular light of the background wall is eliminated and the diffusion factor is reduced when the ray shooting from the background point 
-         towards the light source or from the background point towards the camera position intersect with the sphere.</li>
+       towards the light source or from the background point towards the camera position intersect with the sphere.</li>
       </ul>
    <li>I added basic interactions such as press ctrl + 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
       Just a proof of concept.</li>   
@@ -260,16 +85,30 @@ that you are seeing now.</p>
 </script>
 
 
-<!!-------- YOU PROBABLY DON'T WANT TO CHANGE ANYTHING BELOW FOR NOW -------->
+<!!-------- YOU PROBABLY WANT TO CHANGE ANYTHING BELOW RIGHT NOW -------->
    
 <script>
 
 // CREATE THE HTML DOCUMENT
 let flags = 0x0;
-let vs = my_vertex_shader.innerHTML,
-    fs = my_fragment_shader.innerHTML;
-    fs = fs.substring(1, fs.length);
-
+let vs = my_vertex_shader.innerHTML;
+    //* LOADING FRAGMENT SHADER
+    var client = new XMLHttpRequest();
+    client.open('GET', './shader.frag');
+    client.onloadend = function() {
+      fs = (client.responseText);
+      //* START EVERYTHING AFTER FRAGMENT SHADER IS DOWNLOADED.
+      gl_start(canvas1, vs, fs);
+      editor.getSession().setValue(fs);
+      editor.session.on('change', function(delta) {
+         if(typeof canvas1.setShaders === "function")
+         {
+            canvas1.setShaders(vs, editor.getSession().getValue());
+            setUniform('1i', 'flags', flags);
+         }
+      });
+    }
+   client.send();
 document.body.innerHTML = [''
    ,'<font size=7 color=#909090>' + my_title.innerHTML
    ,'<TABLE cellspacing=0 cellpadding=0><TR>'
@@ -285,10 +124,6 @@ document.body.innerHTML = [''
    ].join('');
 
 // SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
-
-let text = fs.split('\n'), cols = 0;
-for (let i = 0 ; i < text.length ; i++)
-   cols = Math.max(cols, text[i].length);
 ace.require("ace/ext/language_tools");
 var editor = ace.edit("ace", {
    mode:"ace/mode/glsl",
@@ -305,12 +140,8 @@ editor.setOptions({
    showPrintMargin: false,
 });
 editor.setAutoScrollEditorIntoView(true);
-editor.getSession().setValue(fs);
 // REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
-editor.session.on('change', function(delta) {
-   canvas1.setShaders(vs, editor.getSession().getValue());
-   
-});
+delete editor.KeyBinding;
 let lastTime = Date.now();
 let animating = true;
 let ctrl = false;
@@ -322,16 +153,22 @@ canvas1.addEventListener('click',function(ev){
    animating = !animating;
 });
 document.addEventListener('keydown',(e)=>{
-
-if(e.code.startsWith('Control'))
-{
-   ctrl = true;
-}
-else if(ctrl && e.code == 'KeyT')
+   if(e.code.startsWith('Control'))
+   {
+      ctrl = true;
+   }
+   else if(ctrl && e.code == 'KeyT')
    {
       mask = 0x1;
-      flags = flags&!mask | (!(flags&mask)*mask);
+      flags = flags&!mask | (!(flags&mask)?mask:0);
       setUniform('1i', 'flags', flags);
+   }
+   else if (ctrl && e.code == 'KeyS')
+   {
+      let a = document.createElement('a');
+      a.href = "data:text/plain,"+encodeURIComponent(editor.getSession().getValue());
+      a.download = 'shader.frag';
+      a.click();
    }
 });
 
@@ -353,8 +190,6 @@ function animate(gl) {
 
 }
 
-// START EVERYTHING.
 
-gl_start(canvas1, vs, fs);
 </script>
 
