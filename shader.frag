@@ -11,7 +11,7 @@ varying vec3 vPos;// -1 < vPos.x < +1
 
 float fl=3.;
 const float pi=3.14159265359;
-const int n_ref=1;
+const int n_ref=2;
 const int ns=2;
 vec4 Sph[ns];
 uniform sampler2D uSampler[ns];
@@ -51,13 +51,13 @@ void main(){
    
    // SURFACE REFLECTANCE PROPERTIES
    
-   Ambient[0]=vec3(.1,.05,.05);// r,g,b
-   Diffuse[0]=vec3(1.,.5,.5);// r,g,b
-   Specular[0]=vec4(1.,.5,.5,10.);// r,g,b,power
+   Ambient[1]=vec3(.1,.05,.05);// r,g,b
+   Diffuse[1]=vec3(1.,.5,.5);// r,g,b
+   Specular[1]=vec4(1.,.5,.5,10.);// r,g,b,power
    
-   Ambient[1]=vec3(.05,.05,.1);// r,g,b
-   Diffuse[1]=vec3(.5,.5,1.);// r,g,b
-   Specular[1]=vec4(1.,.5,.5,20.);// r,g,b,power
+   Ambient[0]=vec3(.05,.05,.1);// r,g,b
+   Diffuse[0]=vec3(.5,.5,1.);// r,g,b
+   Specular[0]=vec4(1.,.5,.5,20.);// r,g,b,power
    
    // INITIALIZE TO A BACKGROUND COLOR
    
@@ -121,12 +121,11 @@ void main(){
                      Ambient[i]
                      +Diffuse[i]*max(0.,dot(N,realLDir))*LCol
                   )*texture_color
-                  
                ;
                // + SPECULAR COMPONENT GOES HERE
                if(rtxoff || j == n_ref - 1)
-                  color += Specular[i].xyz*pow(max(0.,dot(2.*dot(N,realLDir)*N-realLDir,-W)),Specular[i].w);
-               stack[j] = RT(color, 0.05);
+                  color += float(j) * Specular[i].xyz*pow(max(0.,dot(2.*dot(N,realLDir)*N-realLDir,-W)),Specular[i].w);
+               stack[j] = RT(color, 0.15);
                V = S;
                W = -normalize(2. * dot(N, W) * N - W);
                break;
@@ -137,10 +136,12 @@ void main(){
       // IS INSIDE THE BOUNDING BOX [(-1,-1,-1), (1,1,1)]
       // AND THERE'S A INFINITE FLOOR [y = -1]
 
-         float t = -(1.+V.y)/W.y;
-         if(t >= 0.)
+         float t = -(.2+V.y)/W.y;
+         float sx = V.x + t* W.x, sz = V.z + t * W.z;
+
+         if(t >= 0.&&abs(sx)<1.5 && abs(sz+.6)<3.)
          {   
-            vec3 S = vec3(V.x + t*W.x, -1, V.z + t*W.z);
+            vec3 S = vec3(sx, -.2, sz);
             vec3 realLDir=normalize(LDir - S);
             color=(
                   0.5
@@ -149,16 +150,21 @@ void main(){
             ;
             // + SPECULAR COMPONENT GOES HERE
             if(rtxoff || j == n_ref - 1)
-               color += groundSpecular.xyz*
+               color += float(j)*groundSpecular.xyz*
                   pow(max(0., dot(vec3(-realLDir.x, realLDir.y,-realLDir.z),-W)),groundSpecular.w);
             stack[j] = RT(color, 0.1);
             V = S;
-            W = vec3(-W.x, W.y, -W.z);
+            W = vec3(W.x, -W.y, W.z);
          }
          else{
             if(j > 0)
-               stack[j] = RT(vec3(1.,1.,1.)*pow(max(0.,dot(-W, normalize(LDir - V))), 10.), 1.);
-            cnt_ref = j;// + 1;
+            {
+               stack[j] = RT(vec3(12.,12.,12.)*pow(max(0.,dot(W, normalize(LDir - V))), 10.), 0.);
+               cnt_ref = j + 1;
+            }
+            else
+               cnt_ref = j;
+
             break;
          }
       }       

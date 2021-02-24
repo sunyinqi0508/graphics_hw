@@ -21,7 +21,7 @@
  </style>
 <body bgcolor=white text=black link=black alink=blue vlink=blue>
 <center>
-<canvas id='canvas1' width=600 height=600></canvas>
+<canvas id='canvas1' style="width: 600px; height:600px;" width=1200 height=1200></canvas>
 </center>
 </body>
 
@@ -53,9 +53,8 @@ Solar RTX
 <!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
 
 <script id='my_instructions' type='text/html'><font color=#909090>
-<p style="font-size:30px; ">I am implementing ray tracing<br>
-   to multiple spheres with a single<br>
-   light source and Phong shading.
+<p style="font-size:30px; ">In this homework, I implemented Global illumination w/ 
+   Realtime Recursive Ray Tracing! 
 <p>
 <i style="font-size:25px;">Here is how it works:</i>
 <ul>
@@ -142,7 +141,7 @@ editor.setOptions({
 });
 editor.setAutoScrollEditorIntoView(true);
 // REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
-
+delete editor.KeyBinding;
 let lastTime = Date.now();
 let animating = true;
 let ctrl = false;
