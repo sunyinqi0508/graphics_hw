@@ -58,25 +58,18 @@ Solar RTX
 <p>
 <i style="font-size:25px;">Here is how it works:</i>
 <ul>
-   <li>First, I added <a href="http://planetpixelemporium.com/download/download.php?earthmap1k.jpg">texture</a> to the sphere. The code to load the texture is from 
-      <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL">here</a>. Please wait a sec for the texture to download.</li>
-   <li>Then, I mapped the 3D sphere surface to the rectangular 2D texture picture.  </li>
-   <li>I also make it look like it's rotating by adding uTime to the offset of the texture and reset the offset to 0 whenever it exceeds
-       the width of the texture.</li>
-   <li>I used Perlin Noise to generate fake clouds.</li>
-   <li> I modified the lighting so that the light source won't move with the sphere and 
-      the lighting will change when the sphere moves. I also added specular lights to make it shinier.</li>
-   <li> I tried to add some 'soft shadow' to it. I used a mix of methods inspired by Ambient Occlusion and Ray Tracing.<br>
+   <li>First, I started with what I've already done in homework 1. Which already included complete Phong shading with 
+      Specular light and much more (spherical texture mapping, simple interactions, improved UI/shader editor).
+   </li>
+   <li> I then merged the code from hw2 and added texture to each sphere.</li>
+   <li> I modified the ray tracing algorithm so that when hitting an object, instead of returning color calculated from 
+      Phong model:<br>
       <ul>
-         <li>The Ambient lights and diffusion lights are reduced with respect to the distance between the background point and the sphere.</li>
-         <li>The specular light of the background wall is eliminated and the diffusion factor is reduced when the ray shooting from the background point 
-       towards the light source or from the background point towards the camera position intersect with the sphere.</li>
+         <li>I recursively traced the light reflected and refract from the object.</li>
+         <li></li>
       </ul>
-   <li>I added basic interactions such as press ctrl + 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
-      Just a proof of concept.</li>   
-   <li>Finally, I made some small changes like changing R over time and refined the UI a little bit. I used 
-      <a href="https://ace.c9.io">Ace</a> for code highlighting and autocompletion on the edit panel.</li>
-   <li>Comments begin with '//*' are added by me.</li>
+   <li></li>   
+   <li>Finally, I used super sampling via doubling the render dimensions of the canvas to reduce aliasing.</li>
    <li>Repo on <a href="https://github.com/sunyinqi0508/graphics_hw1">Github</a>.</li>
    </li>
  </ul>
