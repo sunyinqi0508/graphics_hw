@@ -4,23 +4,35 @@ vec3 groundColor = vec3(.2, .3, .5);
 vec4 groundSpecular = vec4(.71, .71, .71, 10.);
 uniform float uTime;// TIME, IN SECONDS
 uniform int flags;
-//FLAGS 0-RT, 1-TEX, 2-
+uniform vec4 rot;
+uniform float dFL;
+//FLAGS 0-TEX, 1-RT, 2-CLOUD, 3-TEX_ROT
 varying vec3 vPos;// -1 < vPos.x < +1
 // -1 < vPos.y < +1
 //      vPos.z == 0
 
 float fl=3.;
 const float pi=3.14159265359;
-const int n_ref=2;
+const int n_ref=6;
 const int ns=2;
 vec4 Sph[ns];
 uniform sampler2D uSampler[ns];
 vec3 Ambient[ns];
 vec3 Diffuse[ns];
 vec4 Specular[ns];
+struct Sphere{
+   vec4 Pos;
+   vec3 Ambient;
+   vec3 Diffuse;
+   vec4 Specular;
+   int textureid;
+   float ks, kt;
+};
 struct RT{
    vec3 color;
    float ks;
+   // vec3 colorr;
+   // float kt;
    // vec3 ptr;
    // vec3 normal;
 } stack[n_ref];
@@ -62,13 +74,20 @@ void main(){
    // INITIALIZE TO A BACKGROUND COLOR
    
    vec3 color=vec3(.2, .3, .5);
-   
+   float ca=rot.x, sa = rot.y, cb=rot.z, sb=rot.w;
    // COMPUTE THE RAY ORIGIN AND DIRECTION
-   float x=vPos.x;
-   float y=vPos.y;
-   
-   vec3 V=vec3(0.,0.,fl);
-   vec3 W=normalize(vec3(x,y,-fl));
+   mat3 transformation, invTr;
+   transformation[0] = vec3(ca, sb*sa, sa*cb);
+   transformation[1] = vec3(0, cb, -sb);
+   transformation[2] = vec3(-sa,ca*sb,ca*cb);
+   invTr[0] = vec3(ca, 0, -sa);
+   invTr[1] = vec3(sa*sb, cb, ca*sb);
+   invTr[2] = vec3(cb*sa, -sb, ca*cb);
+
+   vec3 trPos = transformation*vec3(vPos.xy, -2);
+
+   vec3 V=transformation*vec3(0.,0.,fl+dFL);
+   vec3 W=normalize(trPos-V);
    // RAY TRACE TO ALL OBJECTS IN THE SCENE
    bool rtxoff = getflag(flags, 1);
    int cnt_ref = n_ref;
@@ -99,7 +118,7 @@ void main(){
             if(i == iMin)
             {
                //*TEXTURE MAPPING
-               vec3 tex_sph=S-Sph[i].xyz;
+               vec3 tex_sph=invTr*(S-Sph[i].xyz);
                float R=Sph[i].w;
                float tex_x=acos(abs(tex_sph.x)/sqrt(R*R-tex_sph.y*tex_sph.y));
                if(tex_sph.x>0.)
@@ -124,7 +143,7 @@ void main(){
                ;
                // + SPECULAR COMPONENT GOES HERE
                if(rtxoff || j == n_ref - 1)
-                  color += float(j) * Specular[i].xyz*pow(max(0.,dot(2.*dot(N,realLDir)*N-realLDir,-W)),Specular[i].w);
+                  color += sqrt(float(j+1)) * Specular[i].xyz*pow(max(0.,dot(2.*dot(N,realLDir)*N-realLDir,-W)),Specular[i].w);
                stack[j] = RT(color, 0.15);
                V = S;
                W = -normalize(2. * dot(N, W) * N - W);
@@ -134,7 +153,7 @@ void main(){
       else {
       // TO SIMIPIFY THINGS UP, I'LL ASSUME THAT EVERYTHING 
       // IS INSIDE THE BOUNDING BOX [(-1,-1,-1), (1,1,1)]
-      // AND THERE'S A INFINITE FLOOR [y = -1]
+      // AND THERE'S A FLOOR at [y = -1]
 
          float t = -(.2+V.y)/W.y;
          float sx = V.x + t* W.x, sz = V.z + t * W.z;
@@ -150,7 +169,7 @@ void main(){
             ;
             // + SPECULAR COMPONENT GOES HERE
             if(rtxoff || j == n_ref - 1)
-               color += float(j)*groundSpecular.xyz*
+               color += sqrt(float(j+1))*groundSpecular.xyz*
                   pow(max(0., dot(vec3(-realLDir.x, realLDir.y,-realLDir.z),-W)),groundSpecular.w);
             stack[j] = RT(color, 0.1);
             V = S;
@@ -159,7 +178,7 @@ void main(){
          else{
             if(j > 0)
             {
-               stack[j] = RT(vec3(12.,12.,12.)*pow(max(0.,dot(W, normalize(LDir - V))), 10.), 0.);
+               stack[j] = RT(sqrt(float(j+1))*vec3(4.,4.,4)*pow(max(0.,dot(W, normalize(LDir - V))), 10.), 0.);
                cnt_ref = j + 1;
             }
             else

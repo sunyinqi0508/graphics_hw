@@ -90,7 +90,7 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
    setTimeout(function () {
       try {
-         canvas.gl = canvas.getContext('webgl2');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
+         canvas.gl = canvas.getContext('experimental-webgl');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
       } catch (e) { throw 'Sorry, your browser does not support WebGL.'; }
 
       canvas.setShaders = function (vertexShader, fragmentShader) {         // Add the vertex and fragment shaders:
@@ -151,7 +151,7 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
             textures[i] = i;
          }
          gl.uniform1iv(gl.getUniformLocation(program, 'uSampler'), textures);
-
+         setUniform('4f', 'rot', Math.cos(mousedx), Math.sin(mousedx), Math.cos(mousedy), Math.sin(mousedz));
          gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());                     // Create a square as a triangle strip
          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(                       //    consisting of two triangles.
             [-1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0]), gl.STATIC_DRAW);
