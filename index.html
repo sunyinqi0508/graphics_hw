@@ -22,7 +22,7 @@
 <body bgcolor=white text=black link=black alink=blue vlink=blue>
 <center>
    <!!--- SUPER SAMPLING THE W/H PARAMS FOR CANVAS ARE RENDER SIZE, IN THE CSS IS ACTUAL(DISPLAY) SIZE.--->
-<canvas id='canvas1' style="width: 600px; height:600px;" width=1200 height=1200></canvas>
+<canvas id='canvas1' style="overflow: auto; width: 600px; height:600px;" width=1200 height=1200></canvas>
 </center>
 </body>
 
@@ -40,7 +40,7 @@
 
 
 <!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
-<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag LOADED IN lib2.js -------->
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag!! LOADED IN lib2.js -------->
 <!--script src="shader.frag" id='my_fragment_shader' type='x-shader/x-fragment'> </script>
 
 
@@ -65,24 +65,24 @@ Solar RTX
    <li>Ctrl+Alt/Option+N: Reset ViewPoint.</li>
    <li>Ctrl+Alt/Option+P: Toggle Pause/Resume.</li>
    <li style="color:red;">Please unfocus the Editing area (click somewhere else on the page) to use hotkeys.</li>
-   <li>Click on canvas (WITHOUT key modifiers): Toggle Pause/Resume.</li>
-   <li>SHIFT+Alt/Option+MOUSE DRAG/WHEEL ZOOM: Changing Viewing point.</li>
-
+   <li>Double Click on canvas (WITHOUT key modifiers): Toggle Pause/Resume.</li>
+   <li>MOUSE DRAG, SCROLL/WHEEL ZOOM: Changing Viewing point.</li>
+   <li>Use Chromium based browser for better performance.</li>
 </ul>
 <i style="font-size:25px;">How it works:</i>
 <ul>
-   <li>First, I started with what I've already done in homework 1. Which already included complete Phong shading with 
+   <li>First, I started with what I've already done in <a href="https://billsun.dev/graphics/hw1">homework 1</a>. Which already included complete Phong shading with 
       Specular light and much more (spherical texture mapping, simple interactions, improved UI/shader editor).
    </li>
    <li> I then merged the code from hw2 and added texture to each sphere.</li>
-   <li> I modified the ray tracing algorithm so that when hitting an object, instead of returning color calculated from 
+   <li> I modified the ray tracing algorithm so that when hitting an object, instead of just returning color calculated from 
       Phong model:<br>
       <ul>
          <li>It recursively bounces and/or refract(NOT IMPLEMENTED YET) itself spawning new rays.</li>
          <li>The color of this pixel equals to Ambient + Diffuse + ks*color[Reflected] + kt*color[Refracted]. 
             (<a href="https://www.cs.drexel.edu/~david/Classes/Papers/p343-whitted.pdf">Turner Whitted Model</a>)</li>
-         <li>The tracing will stop when a ray was reflected/refracted n_ref times. </li> 
-         <li>The color of the final light is computed via specular component from the Phong model.</li>
+         <li>The tracing will stop when a ray was not hitting any object or was reflected/refracted n_ref times. </li> 
+         <li>The color/intensity of the final lights are computed via specular component from the Phong model.</li>
          <li>You may increase n_ref for more iterations, but please proceed with caution, because it may halt the computer.  
          </li>
       </ul>
@@ -91,7 +91,7 @@ Solar RTX
       or holding shift and alt while scrolling on canvas to change focal length.
       This is implemented by applying a transformation matrix to the viewpoint and projection surface.
    </li>   
-   <li>Finally, I used super sampling via doubling the render dimensions of the canvas to reduce aliasing.</li>
+   <li>Finally, I used super sampling via doubling the render dimensions of the canvas to reduce aliasing. SEE comments on index.html</li>
    <li>Repo on <a href="https://github.com/sunyinqi0508/graphics_hw1">Github</a>.</li>
    </li>
  </ul>
@@ -135,13 +135,26 @@ document.body.innerHTML = [''
    ,'<table cellspacing=0>'
    ,'<tr>'
    ,'<td valign=top>'
-   ,'<div id="ace" style="width:800px;height:1780px;"></div>'
+   ,'<div id="ace" style="width:800px;height:2200px;"></div>'
    ,'</td><td valign=top>' + document.body.innerHTML
+   ,'<input type="number" id="ins" style="margin-left:3px;font-size:24px;width:100px;height:45px" value="4">'
+   ,'<button id="bns" style="margin-left:5px;font-size:24px;width:150px;height:45px">Set Spheres</button>'
    ,'<div style=\'font-size:25px\'>' + my_instructions.innerHTML + '</div>' + '</td>'
    ,'</tr></table>'
    ,'</TR></TABLE>'
    ].join('');
-
+bns.onclick=function(e){
+   if(ins.value>0 &&ins.value<=ns &&cns!=ins.value)
+   {   
+      cns = ins.value;
+      fragmentShaderDefs = '\n const int cns = ' + cns + ';';
+      if(typeof canvas1.setShaders === "function")
+         {
+            canvas1.setShaders(vs, editor.getSession().getValue());
+            setUniform('1i', 'flags', flags);
+         }
+   }
+}
 // SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
 ace.require("ace/ext/language_tools");
 var editor = ace.edit("ace", {
@@ -163,9 +176,11 @@ editor.setAutoScrollEditorIntoView(true);
 delete editor.KeyBinding;
 let lastTime = Date.now();
 let animating = true;
-let ctrl = false, alt = false, shift = false, fpson = true, moving = false;
+let ctrl = false, alt = false, shift = false, fpson = true, moving = false, over = false;
 let mousedx = 0, mousedy = 0, mousedz = 0;
+let cx = 1, cy = 1, sx = 0, sy = 0;
 let mouselastX, mouselastY;
+let lastClick = undefined;
 let pause_resume = function(){
    if(animating)
          lastTime = Date.now();
@@ -174,30 +189,46 @@ let pause_resume = function(){
       animating = !animating;
 };
 canvas1.addEventListener('click',function(ev){
-   if(!(shift && alt))
+   if(!(shift && alt) && lastClick&& Date.now()-lastClick<400)
       pause_resume();
+   lastClick = Date.now();
    //moving = false;
 });
+canvas1.addEventListener('mouseover', function(e){
+   over = true;
+   const mask = 0x8;
+   flags |= mask;
+   setUniform('1i', 'flags', flags);
+});
 canvas1.addEventListener('mousedown', function(e){
-   if(shift && alt){
       moving = true
       mouselastX = mouselastY =  undefined;
-   }
-   else
-      moving = false;
 });
 canvas1.addEventListener('mousemove', function(e){
-   if(shift && alt && moving){
-      if(!(mouselastX==undefined || mouselastY == undefined)){
-         mousedx += (mouselastX - e.offsetX)/60;
-         mousedy += (mouselastY - e.offsetY)/60;
-         setUniform('4f', 'rot', Math.cos(mousedx), Math.sin(mousedx), Math.cos(mousedy), Math.sin(mousedy));
+      if(!(mouselastX==undefined || mouselastY == undefined)&&moving){
+         mousedx -= (mouselastX - e.offsetX)/60;
+         mousedy -= (mouselastY - e.offsetY)/60;
+         cx = Math.cos(mousedx);
+         sx = Math.sin(mousedx);
+         cy = Math.cos(mousedy);
+         sy = Math.sin(mousedy);
+         setUniform('4f', 'rot', cx, sx, cy, sy);
+         const mask = 0x4;
+         flags |= mask;
+         setUniform('1i', 'flags', flags);
       }
+      // if(over){
+      //    let x=e.offsetX/300-1;
+      //    let y=e.offsetY/300-1;
+      //    let z=-1-3-mousedz;
+      //    let tx = cx*x+sy*sx*y+sx*cy*z;
+      //    let ty = cy*y-sy*z;
+      //    let tz = -sx*x+cx*sy*y+cx*cy*z;
+      //    let len = Math.sqrt(tx*tx + ty*ty+tz*tz);
+      //    setUniform('3f', 'fDir', tx/len, ty/len, tz/len);
+      // }
       mouselastX = e.offsetX;
       mouselastY = e.offsetY;
-   }
-   else
-      moving = false;
 });
 canvas1.addEventListener('mouseup', function(e){
    // if(ctrl && alt && moving){
@@ -207,14 +238,18 @@ canvas1.addEventListener('mouseup', function(e){
 canvas1.addEventListener('mouseout', function(e){
    // if(ctrl && alt && moving){
    // }
+   const mask = 0x8;
+   flags &= !mask;
+   setUniform('1i', 'flags', flags);
+   over = false;
    moving = false;
 });
 canvas1.addEventListener('wheel', function(e){
-   if(shift && alt){
       mousedz += e.wheelDelta/600;
       setUniform('1f', 'dFL', mousedz);
-   }
+      e.stopImmediatePropagation();
 });
+canvas1.scroll(function(e) {e.stopPropagation();});
 rtx.style.cursor="pointer";
 let rtswitch = function(){
    const mask = 0x2;
@@ -223,7 +258,7 @@ let rtswitch = function(){
       rtx.src='./RTXoff.svg';
    else
       rtx.src='./RTXon.svg';
-   flags = flags&!mask | (rtstatus?mask:0);
+   flags = (flags&(!mask)) | (rtstatus?mask:0);
    setUniform('1i', 'flags', flags);
 }
 rtx.addEventListener('click', rtswitch);
@@ -267,7 +302,12 @@ document.addEventListener('keydown',(e)=>{
       flags = 0;
       moving = false;
       mousedx = mousedy = mousedz = 0;
-      setUniform('4f', 'rot', Math.cos(mousedx), Math.sin(mousedx), Math.cos(mousedy), Math.sin(mousedy));
+      cx = Math.cos(mousedx);
+      sx = Math.sin(mousedx);
+      cy = Math.cos(mousedy);
+      sy = Math.sin(mousedy);
+      rtx.src='./RTXon.svg';
+      setUniform('4f', 'rot', cx, sx, cy, sy);
       setUniform('1f', 'dFL', mousedz);
       setUniform('1i', 'flags', flags);
    }

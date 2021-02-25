@@ -15,8 +15,10 @@ let fragmentShaderHeader = [''                      // WHATEVER CODE WE WANT TO 
    , '  r+=sin(6.3*dot(P,fract(D)-.5))*pow(max(0.,1.-2.*dot(P,P)),4.);'
    , '} return .5 * sin(r); }'
 ].join('\n');
-
-let nfsh = fragmentShaderHeader.split('\n').length; // NUMBER OF LINES OF CODE IN fragmentShaderHeader
+let ns = 4, cns = 4;
+fragmentShaderHeader+= 'const int ns = ' + ns + ';\n';
+let fragmentShaderDefs = 'const int cns = ' + cns + ';\n';
+let nfsh = fragmentShaderHeader.split('\n').length + 1; // NUMBER OF LINES OF CODE IN fragmentShaderHeader
 
 let isFirefox = navigator.userAgent.indexOf('Firefox') > 0;         // IS THIS THE FIREFOX BROWSER?
 let errorMsg = '';
@@ -138,14 +140,13 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
          };
 
          addshader(gl.VERTEX_SHADER, vertexShader);                         // Add the vertex and fragment shaders.
-         addshader(gl.FRAGMENT_SHADER, fragmentShaderHeader + fragmentShader);
+         addshader(gl.FRAGMENT_SHADER, fragmentShaderHeader +fragmentShaderDefs+ fragmentShader);
 
          gl.linkProgram(program);                                               // Link the program, report any errors.
          if (!gl.getProgramParameter(program, gl.LINK_STATUS))
             console.log('Could not link the shader program!');
          gl.useProgram(program);
          gl.program = program;
-         const ns = 2;
          for(let i = 0; i < ns; ++i){
             loadTexture(gl, './'+(i+1)+'.jpg', i); //Texture loading.
             textures[i] = i;
