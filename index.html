@@ -21,7 +21,8 @@
  </style>
 <body bgcolor=white text=black link=black alink=blue vlink=blue>
 <center>
-<canvas id='canvas1' style="width: 600px; height:600px;" width=1200 height=1200></canvas>
+   <!!--- SUPER SAMPLING THE W/H PARAMS FOR CANVAS ARE RENDER SIZE, IN THE CSS IS ACTUAL(DISPLAY) SIZE.--->
+<canvas id='canvas1' style="overflow: auto; width: 600px; height:600px;" width=1200 height=1200></canvas>
 </center>
 </body>
 
@@ -39,7 +40,7 @@
 
 
 <!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
-<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag LOADED IN lib2.js -------->
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag!! LOADED IN lib2.js -------->
 <!--script src="shader.frag" id='my_fragment_shader' type='x-shader/x-fragment'> </script>
 
 
@@ -56,27 +57,41 @@ Solar RTX
 <p style="font-size:30px; ">In this homework, I implemented Global illumination w/ 
    Realtime Recursive Ray Tracing! 
 <p>
-<i style="font-size:25px;">Here is how it works:</i>
+<i style="font-size:25px;">Usage: </i>
 <ul>
-   <li>First, I added <a href="http://planetpixelemporium.com/download/download.php?earthmap1k.jpg">texture</a> to the sphere. The code to load the texture is from 
-      <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL">here</a>. Please wait a sec for the texture to download.</li>
-   <li>Then, I mapped the 3D sphere surface to the rectangular 2D texture picture.  </li>
-   <li>I also make it look like it's rotating by adding uTime to the offset of the texture and reset the offset to 0 whenever it exceeds
-       the width of the texture.</li>
-   <li>I used Perlin Noise to generate fake clouds.</li>
-   <li> I modified the lighting so that the light source won't move with the sphere and 
-      the lighting will change when the sphere moves. I also added specular lights to make it shinier.</li>
-   <li> I tried to add some 'soft shadow' to it. I used a mix of methods inspired by Ambient Occlusion and Ray Tracing.<br>
+   <li>Ctrl+Alt/Option+T: Toggle Texture.</li>
+   <li>Ctrl+S: Download fragment shader.</li>
+   <li>Ctrl+Alt/Option+R: Toggle Recursive Ray Tracing.</li>
+   <li>Ctrl+Alt/Option+N: Reset ViewPoint.</li>
+   <li>Ctrl+Alt/Option+P: Toggle Pause/Resume.</li>
+   <li style="color:red;">Please unfocus the Editing area (click somewhere else on the page) to use hotkeys.</li>
+   <li>Double Click on canvas (WITHOUT key modifiers): Toggle Pause/Resume.</li>
+   <li>MOUSE DRAG, SCROLL/WHEEL ZOOM: Changing Viewing point.</li>
+   <li>Use Chromium based browser for better performance.</li>
+</ul>
+<i style="font-size:25px;">How it works:</i>
+<ul>
+   <li>First, I started with what I've already done in <a href="https://billsun.dev/graphics/hw1">homework 1</a>. Which already included complete Phong shading with 
+      Specular light and much more (spherical texture mapping, simple interactions, improved UI/shader editor).
+   </li>
+   <li> I then merged the code from hw2 and added texture to each sphere.</li>
+   <li> I modified the ray tracing algorithm so that when hitting an object, instead of just returning color calculated from 
+      Phong model:<br>
       <ul>
-         <li>The Ambient lights and diffusion lights are reduced with respect to the distance between the background point and the sphere.</li>
-         <li>The specular light of the background wall is eliminated and the diffusion factor is reduced when the ray shooting from the background point 
-       towards the light source or from the background point towards the camera position intersect with the sphere.</li>
+         <li>It recursively bounces and/or refract(NOT IMPLEMENTED YET) itself spawning new rays.</li>
+         <li>The color of this pixel equals to Ambient + Diffuse + ks*color[Reflected] + kt*color[Refracted]. 
+            (<a href="https://www.cs.drexel.edu/~david/Classes/Papers/p343-whitted.pdf">Turner Whitted Model</a>)</li>
+         <li>The tracing will stop when a ray was not hitting any object or was reflected/refracted n_ref times. </li> 
+         <li>The color/intensity of the final lights are computed via specular component from the Phong model.</li>
+         <li>You may increase n_ref for more iterations, but please proceed with caution, because it may halt the computer.  
+         </li>
       </ul>
-   <li>I added basic interactions such as press ctrl + 't' key to hide/show texture, click on the above canvas to pause/unpause animations. 
-      Just a proof of concept.</li>   
-   <li>Finally, I made some small changes like changing R over time and refined the UI a little bit. I used 
-      <a href="https://ace.c9.io">Ace</a> for code highlighting and autocompletion on the edit panel.</li>
-   <li>Comments begin with '//*' are added by me.</li>
+   <li>I added more interactions, you can now change the viewpoint by 
+      holding shift and alt key while dragging on canvas to rotate,
+      or holding shift and alt while scrolling on canvas to change focal length.
+      This is implemented by applying a transformation matrix to the viewpoint and projection surface.
+   </li>   
+   <li>Finally, I used super sampling via doubling the render dimensions of the canvas to reduce aliasing. SEE comments on index.html</li>
    <li>Repo on <a href="https://github.com/sunyinqi0508/graphics_hw1">Github</a>.</li>
    </li>
  </ul>
@@ -111,18 +126,35 @@ let vs = my_vertex_shader.innerHTML;
    client.send();
 document.body.innerHTML = [''
    ,'<font size=7 color=#909090>' + my_title.innerHTML
+   ,'<img id="rtx" style="float:right;" src="./RTXon.svg" type="image/svg+xml"'
+   ,' alt="Turn Ray Tracing On/OFF" title="Turn Ray Tracing On/OFF" height=60px /img>' 
+   ,'<div id="fps" style="font-size:25;float:right;margin-right:18px;"></div>' 
    ,'<TABLE cellspacing=0 cellpadding=0><TR>'
    ,'<td><font color=red size=5><div id=errorMessage></div></font></td>'
    ,'</TR><TR>'
    ,'<table cellspacing=0>'
    ,'<tr>'
    ,'<td valign=top>'
-   ,'<div id="ace" style="width:800px;height:1780px;"></div>'
-   ,'</td><td valign=top>' + document.body.innerHTML  + '<div style=\'font-size:25px\'>' + my_instructions.innerHTML + '</div>' + '</td>'
+   ,'<div id="ace" style="width:800px;height:2200px;"></div>'
+   ,'</td><td valign=top>' + document.body.innerHTML
+   ,'<input type="number" id="ins" style="margin-left:3px;font-size:24px;width:100px;height:45px" value="4">'
+   ,'<button id="bns" style="margin-left:5px;font-size:24px;width:150px;height:45px">Set Spheres</button>'
+   ,'<div style=\'font-size:25px\'>' + my_instructions.innerHTML + '</div>' + '</td>'
    ,'</tr></table>'
    ,'</TR></TABLE>'
    ].join('');
-
+bns.onclick=function(e){
+   if(ins.value>0 &&ins.value<=ns &&cns!=ins.value)
+   {   
+      cns = ins.value;
+      fragmentShaderDefs = '\n const int cns = ' + cns + ';';
+      if(typeof canvas1.setShaders === "function")
+         {
+            canvas1.setShaders(vs, editor.getSession().getValue());
+            setUniform('1i', 'flags', flags);
+         }
+   }
+}
 // SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
 ace.require("ace/ext/language_tools");
 var editor = ace.edit("ace", {
@@ -144,52 +176,175 @@ editor.setAutoScrollEditorIntoView(true);
 delete editor.KeyBinding;
 let lastTime = Date.now();
 let animating = true;
-let ctrl = false;
-canvas1.addEventListener('click',function(ev){
+let ctrl = false, alt = false, shift = false, fpson = true, moving = false, over = false;
+let mousedx = 0, mousedy = 0, mousedz = 0;
+let cx = 1, cy = 1, sx = 0, sy = 0;
+let mouselastX, mouselastY;
+let lastClick = undefined;
+let pause_resume = function(){
    if(animating)
-      lastTime = Date.now();
-   else
-      startTime += Date.now() - lastTime;   
-   animating = !animating;
+         lastTime = Date.now();
+      else
+         startTime += Date.now() - lastTime;   
+      animating = !animating;
+};
+canvas1.addEventListener('click',function(ev){
+   if(!(shift && alt) && lastClick&& Date.now()-lastClick<400)
+      pause_resume();
+   lastClick = Date.now();
+   //moving = false;
 });
+canvas1.addEventListener('mouseover', function(e){
+   over = true;
+   const mask = 0x8;
+   flags |= mask;
+   setUniform('1i', 'flags', flags);
+});
+canvas1.addEventListener('mousedown', function(e){
+      moving = true
+      mouselastX = mouselastY =  undefined;
+});
+canvas1.addEventListener('mousemove', function(e){
+      if(!(mouselastX==undefined || mouselastY == undefined)&&moving){
+         mousedx -= (mouselastX - e.offsetX)/60;
+         mousedy -= (mouselastY - e.offsetY)/60;
+         cx = Math.cos(mousedx);
+         sx = Math.sin(mousedx);
+         cy = Math.cos(mousedy);
+         sy = Math.sin(mousedy);
+         setUniform('4f', 'rot', cx, sx, cy, sy);
+         const mask = 0x4;
+         flags |= mask;
+         setUniform('1i', 'flags', flags);
+      }
+      // if(over){
+      //    let x=e.offsetX/300-1;
+      //    let y=e.offsetY/300-1;
+      //    let z=-1-3-mousedz;
+      //    let tx = cx*x+sy*sx*y+sx*cy*z;
+      //    let ty = cy*y-sy*z;
+      //    let tz = -sx*x+cx*sy*y+cx*cy*z;
+      //    let len = Math.sqrt(tx*tx + ty*ty+tz*tz);
+      //    setUniform('3f', 'fDir', tx/len, ty/len, tz/len);
+      // }
+      mouselastX = e.offsetX;
+      mouselastY = e.offsetY;
+});
+canvas1.addEventListener('mouseup', function(e){
+   // if(ctrl && alt && moving){
+   // }
+   moving = false;
+});
+canvas1.addEventListener('mouseout', function(e){
+   // if(ctrl && alt && moving){
+   // }
+   const mask = 0x8;
+   flags &= !mask;
+   setUniform('1i', 'flags', flags);
+   over = false;
+   moving = false;
+});
+canvas1.addEventListener('wheel', function(e){
+      mousedz += e.wheelDelta/600;
+      setUniform('1f', 'dFL', mousedz);
+      e.stopImmediatePropagation();
+});
+canvas1.scroll(function(e) {e.stopPropagation();});
+rtx.style.cursor="pointer";
+let rtswitch = function(){
+   const mask = 0x2;
+   let rtstatus = !(flags&mask);
+   if (rtstatus)
+      rtx.src='./RTXoff.svg';
+   else
+      rtx.src='./RTXon.svg';
+   flags = (flags&(!mask)) | (rtstatus?mask:0);
+   setUniform('1i', 'flags', flags);
+}
+rtx.addEventListener('click', rtswitch);
+var requestAnimationFrame = window.requestAnimationFrame ||
+ window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+let fpscounter = function(time){
+      if (start === undefined)
+         start = time;
+      else
+         fps.innerHTML = Math.round(10000/(time-start))/10 + ' fps';
+      start = time;
+      if(fpson)
+         requestAnimationFrame(fpscounter);
+      else{
+         start = undefined;
+         fps.innerHTML = '';
+      }
+   };
 document.addEventListener('keydown',(e)=>{
+   if(e.code.startsWith('Shift'))
+      shift = true;
    if(e.code.startsWith('Control'))
-   {
       ctrl = true;
-   }
-   else if(ctrl && e.code == 'KeyT')
-   {
-      mask = 0x1;
+   if(e.code.startsWith('Alt'))
+      alt = true;
+   else if(ctrl && alt && e.code == 'KeyT'){
+      const mask = 0x1;
       flags = flags&!mask | (!(flags&mask)?mask:0);
       setUniform('1i', 'flags', flags);
    }
-   else if (ctrl && e.code == 'KeyS')
-   {
+   else if (ctrl &&e.code == 'KeyS'){
       let a = document.createElement('a');
       a.href = "data:text/plain,"+encodeURIComponent(editor.getSession().getValue());
       a.download = 'shader.frag';
       a.click();
    }
+   else if(ctrl && alt&&e.code == 'KeyR')
+      rtswitch();
+   else if(ctrl && alt&&e.code == 'KeyN')
+   {
+      flags = 0;
+      moving = false;
+      mousedx = mousedy = mousedz = 0;
+      cx = Math.cos(mousedx);
+      sx = Math.sin(mousedx);
+      cy = Math.cos(mousedy);
+      sy = Math.sin(mousedy);
+      rtx.src='./RTXon.svg';
+      setUniform('4f', 'rot', cx, sx, cy, sy);
+      setUniform('1f', 'dFL', mousedz);
+      setUniform('1i', 'flags', flags);
+   }
+   else if(ctrl && alt&&e.code == 'KeyP')
+      pause_resume();
+   else if(ctrl && alt&&e.code == 'KeyF')
+      if(!fpson)
+      {
+         fpson = true;
+         requestAnimationFrame(fpscounter);
+      }
+      else
+         fpson = false;
+   // else if(e.code =='KeyV')
+   //    alert(' '+ mousedx+ ' ' + mousedy + ' '+mousedz)
+
 });
 
 document.addEventListener('keyup',(e)=>{
    if(e.code.startsWith('Control'))
-   {
       ctrl = false;
-   }
+   if(e.code.startsWith('Alt'))
+      alt = false;
+   if(e.code.startsWith('Shift'))
+      shift = false;
 });
 // SET THE CURRENT TIME IN SECONDS BEFORE RENDERING EACH FRAME.
 
 let startTime = Date.now();
-
+let lastFrameTime = 0;
 function animate(gl) {
    if(animating)
       setUniform('1f', 'uTime', (Date.now() - startTime) / 1000);
    else
       setUniform('1f', 'uTime', (lastTime - startTime) / 1000);
-
 }
-
-
+let start;
+requestAnimationFrame(fpscounter);
 </script>
 

@@ -15,8 +15,10 @@ let fragmentShaderHeader = [''                      // WHATEVER CODE WE WANT TO 
    , '  r+=sin(6.3*dot(P,fract(D)-.5))*pow(max(0.,1.-2.*dot(P,P)),4.);'
    , '} return .5 * sin(r); }'
 ].join('\n');
-
-let nfsh = fragmentShaderHeader.split('\n').length; // NUMBER OF LINES OF CODE IN fragmentShaderHeader
+let ns = 4, cns = 4;
+fragmentShaderHeader+= 'const int ns = ' + ns + ';\n';
+let fragmentShaderDefs = 'const int cns = ' + cns + ';\n';
+let nfsh = fragmentShaderHeader.split('\n').length + 1; // NUMBER OF LINES OF CODE IN fragmentShaderHeader
 
 let isFirefox = navigator.userAgent.indexOf('Firefox') > 0;         // IS THIS THE FIREFOX BROWSER?
 let errorMsg = '';
@@ -90,7 +92,7 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
    setTimeout(function () {
       try {
-         canvas.gl = canvas.getContext('webgl2');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
+         canvas.gl = canvas.getContext('experimental-webgl');              // Make sure WebGl is supported. IT WOULD BE GREAT TO USE WEBGL2 INSTEAD.
       } catch (e) { throw 'Sorry, your browser does not support WebGL.'; }
 
       canvas.setShaders = function (vertexShader, fragmentShader) {         // Add the vertex and fragment shaders:
@@ -138,20 +140,19 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
          };
 
          addshader(gl.VERTEX_SHADER, vertexShader);                         // Add the vertex and fragment shaders.
-         addshader(gl.FRAGMENT_SHADER, fragmentShaderHeader + fragmentShader);
+         addshader(gl.FRAGMENT_SHADER, fragmentShaderHeader +fragmentShaderDefs+ fragmentShader);
 
          gl.linkProgram(program);                                               // Link the program, report any errors.
          if (!gl.getProgramParameter(program, gl.LINK_STATUS))
             console.log('Could not link the shader program!');
          gl.useProgram(program);
          gl.program = program;
-         const ns = 2;
          for(let i = 0; i < ns; ++i){
             loadTexture(gl, './'+(i+1)+'.jpg', i); //Texture loading.
             textures[i] = i;
          }
          gl.uniform1iv(gl.getUniformLocation(program, 'uSampler'), textures);
-
+         setUniform('4f', 'rot', Math.cos(mousedx), Math.sin(mousedx), Math.cos(mousedy), Math.sin(mousedz));
          gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());                     // Create a square as a triangle strip
          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(                       //    consisting of two triangles.
             [-1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0]), gl.STATIC_DRAW);
