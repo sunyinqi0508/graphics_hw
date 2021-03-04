@@ -1,2 +1,2 @@
-# graphics_hw2
-[link](https://billsun.dev/graphics/hw2)
+# graphics_hw3
+[link](https://billsun.dev/graphics/hw3)

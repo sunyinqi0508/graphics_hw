@@ -1,4 +1,4 @@
-<script src=lib2.js></script>
+<script src=lib3.js></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js" crossorigin="anonymous"></script>
 <style>
@@ -22,7 +22,7 @@
 <body bgcolor=white text=black link=black alink=blue vlink=blue>
 <center>
    <!!--- SUPER SAMPLING THE W/H PARAMS FOR CANVAS ARE RENDER SIZE, IN THE CSS IS ACTUAL(DISPLAY) SIZE.--->
-<canvas id='canvas1' style="overflow: auto; width: 600px; height:600px;" width=1200 height=1200></canvas>
+<canvas id='canvas1' style=" overflow: hidden !important; width: 600px !important; height:600px !important;" width=600 height=600></canvas>
 </center>
 </body>
 
@@ -47,7 +47,7 @@
 <!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
 
 <script id='my_title' type='text/html'>
-Solar RTX
+RTX Extreme 
 </script>
 
 
@@ -61,39 +61,31 @@ Solar RTX
 <ul>
    <li>Ctrl+Alt/Option+T: Toggle Texture.</li>
    <li>Ctrl+S: Download fragment shader.</li>
-   <li>Ctrl+Alt/Option+R: Toggle Recursive Ray Tracing.</li>
    <li>Ctrl+Alt/Option+N: Reset ViewPoint.</li>
    <li>Ctrl+Alt/Option+P: Toggle Pause/Resume.</li>
    <li style="color:red;">Please unfocus the Editing area (click somewhere else on the page) to use hotkeys.</li>
    <li>Double Click on canvas (WITHOUT key modifiers): Toggle Pause/Resume.</li>
-   <li>MOUSE DRAG, SCROLL/WHEEL ZOOM: Changing Viewing point.</li>
-   <li>Use Chromium based browser for better performance.</li>
+   <li>DRAG, SCROLL on canvas: Changing Viewing point.</li>
+   <li>Please use Chromium based browser.</li>
+   <li>Super Sampling(0.25x-4x): increase rendering size for better visual or decrease rendering size for better performance.</li>
+   <li>Spheres(1 - 4): number of spheres, performance will suffer if adding too many spheres.</li>
 </ul>
 <i style="font-size:25px;">How it works:</i>
 <ul>
-   <li>First, I started with what I've already done in <a href="https://billsun.dev/graphics/hw1">homework 1</a>. Which already included complete Phong shading with 
-      Specular light and much more (spherical texture mapping, simple interactions, improved UI/shader editor).
+   <li>I added recursive ray tracing with fraction support.</li>
+   <li>Each hit will now spawn 2 rays, but there're serious performance issues, because 
+      the number of rays increases exponentially. I resolved this issue by:
    </li>
-   <li> I then merged the code from hw2 and added texture to each sphere.</li>
-   <li> I modified the ray tracing algorithm so that when hitting an object, instead of just returning color calculated from 
-      Phong model:<br>
-      <ul>
-         <li>It recursively bounces and/or refract(NOT IMPLEMENTED YET) itself spawning new rays.</li>
-         <li>The color of this pixel equals to Ambient + Diffuse + ks*color[Reflected] + kt*color[Refracted]. 
-            (<a href="https://www.cs.drexel.edu/~david/Classes/Papers/p343-whitted.pdf">Turner Whitted Model</a>)</li>
-         <li>The tracing will stop when a ray was not hitting any object or was reflected/refracted n_ref times. </li> 
-         <li>The color/intensity of the final lights are computed via specular component from the Phong model.</li>
-         <li>You may increase n_ref for more iterations, but please proceed with caution, because it may halt the computer.  
-         </li>
-      </ul>
-   <li>I added more interactions, you can now change the viewpoint by 
-      holding shift and alt key while dragging on canvas to rotate,
-      or holding shift and alt while scrolling on canvas to change focal length.
-      This is implemented by applying a transformation matrix to the viewpoint and projection surface.
-   </li>   
-   <li>Finally, I used super sampling via doubling the render dimensions of the canvas to reduce aliasing. SEE comments on index.html</li>
-   <li>Repo on <a href="https://github.com/sunyinqi0508/graphics_hw1">Github</a>.</li>
-   </li>
+   <ul>
+      <li>Pruning: If the weight of this ray is too small, dispose it.</li>
+      <li>Smarter Stack frame utilization: Now the stack frame will only store last rays and next rays. 
+         By alternating 2 arrays storing last ray and next ray, I don't need to store other rays.
+      </li>
+      <li>By combining these methods I managed to significantly reduce RT depth and 'stack' size, 
+         While supporting nested object and objects both reflection and refraction rays on the same surface. 
+      </li>   
+   </ul>
+   <img src="./img.jpg"></img>
  </ul>
 <p>
 
@@ -137,8 +129,10 @@ document.body.innerHTML = [''
    ,'<td valign=top>'
    ,'<div id="ace" style="width:800px;height:2200px;"></div>'
    ,'</td><td valign=top>' + document.body.innerHTML
-   ,'<input type="number" id="ins" style="margin-left:3px;font-size:24px;width:100px;height:45px" value="4">'
-   ,'<button id="bns" style="margin-left:5px;font-size:24px;width:150px;height:45px">Set Spheres</button>'
+   ,'<input type="number" id="ins" style="margin-left:3px;font-size:24px;width:100px;height:45px" value="2" max="4">'
+   ,'<button id="bns" style="margin-left:5px;font-size:24px;width:180px;height:45px">Set Spheres</button>'
+   ,'<input type="number" id="insamp" style="margin-left:3px;font-size:24px;width:100px;height:45px" value="1" max="4" min = "0.25">'
+   ,'<button id="bnsamp" style="margin-left:5px;font-size:24px;width:200px;height:45px">Super Sampling</button>'
    ,'<div style=\'font-size:25px\'>' + my_instructions.innerHTML + '</div>' + '</td>'
    ,'</tr></table>'
    ,'</TR></TABLE>'
@@ -149,11 +143,17 @@ bns.onclick=function(e){
       cns = ins.value;
       fragmentShaderDefs = '\n const int cns = ' + cns + ';';
       if(typeof canvas1.setShaders === "function")
-         {
-            canvas1.setShaders(vs, editor.getSession().getValue());
-            setUniform('1i', 'flags', flags);
-         }
+         canvas1.setShaders(vs, editor.getSession().getValue());
    }
+}
+bnsamp.onclick=function(e){
+   let multiplier  = insamp.value;
+   let w = parseInt(canvas1.style.width)*multiplier;
+   let h = parseInt(canvas1.style.height)*multiplier;
+   canvas1.height = h;
+   canvas1.width = w;
+   gl.viewport(0, 0, w, h);
+   gl.clearRect(0, 0, w, h);
 }
 // SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
 ace.require("ace/ext/language_tools");
@@ -174,6 +174,7 @@ editor.setOptions({
 editor.setAutoScrollEditorIntoView(true);
 // REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
 delete editor.KeyBinding;
+
 let lastTime = Date.now();
 let animating = true;
 let ctrl = false, alt = false, shift = false, fpson = true, moving = false, over = false;
@@ -212,32 +213,15 @@ canvas1.addEventListener('mousemove', function(e){
          sx = Math.sin(mousedx);
          cy = Math.cos(mousedy);
          sy = Math.sin(mousedy);
-         setUniform('4f', 'rot', cx, sx, cy, sy);
-         const mask = 0x4;
-         flags |= mask;
-         setUniform('1i', 'flags', flags);
+         setUniform('Matrix3fv', 'transformation', false, [cx, sy*sx, sx*cy, 0, cy, -sy, -sx, cx*sy, cx*cy]);
       }
-      // if(over){
-      //    let x=e.offsetX/300-1;
-      //    let y=e.offsetY/300-1;
-      //    let z=-1-3-mousedz;
-      //    let tx = cx*x+sy*sx*y+sx*cy*z;
-      //    let ty = cy*y-sy*z;
-      //    let tz = -sx*x+cx*sy*y+cx*cy*z;
-      //    let len = Math.sqrt(tx*tx + ty*ty+tz*tz);
-      //    setUniform('3f', 'fDir', tx/len, ty/len, tz/len);
-      // }
       mouselastX = e.offsetX;
       mouselastY = e.offsetY;
 });
 canvas1.addEventListener('mouseup', function(e){
-   // if(ctrl && alt && moving){
-   // }
    moving = false;
 });
 canvas1.addEventListener('mouseout', function(e){
-   // if(ctrl && alt && moving){
-   // }
    const mask = 0x8;
    flags &= !mask;
    setUniform('1i', 'flags', flags);
@@ -252,14 +236,8 @@ canvas1.addEventListener('wheel', function(e){
 canvas1.scroll(function(e) {e.stopPropagation();});
 rtx.style.cursor="pointer";
 let rtswitch = function(){
-   const mask = 0x2;
-   let rtstatus = !(flags&mask);
-   if (rtstatus)
-      rtx.src='./RTXoff.svg';
-   else
-      rtx.src='./RTXon.svg';
-   flags = (flags&(!mask)) | (rtstatus?mask:0);
-   setUniform('1i', 'flags', flags);
+   alert('Ray Tracing is always on. See hw2 where rt can be toggled on/off.')
+   rtx.src='./RTXon.svg';
 }
 rtx.addEventListener('click', rtswitch);
 var requestAnimationFrame = window.requestAnimationFrame ||
@@ -271,7 +249,7 @@ let fpscounter = function(time){
          fps.innerHTML = Math.round(10000/(time-start))/10 + ' fps';
       start = time;
       if(fpson)
-         requestAnimationFrame(fpscounter);
+         ;//requestAnimationFrame(fpscounter);
       else{
          start = undefined;
          fps.innerHTML = '';
@@ -307,7 +285,7 @@ document.addEventListener('keydown',(e)=>{
       cy = Math.cos(mousedy);
       sy = Math.sin(mousedy);
       rtx.src='./RTXon.svg';
-      setUniform('4f', 'rot', cx, sx, cy, sy);
+      setUniform('Matrix3fv', 'transformation', false, [cx, sy*sx, sx*cy, 0, cy, -sy, -sx, cx*sy, cx*cy]);
       setUniform('1f', 'dFL', mousedz);
       setUniform('1i', 'flags', flags);
    }
@@ -321,9 +299,6 @@ document.addEventListener('keydown',(e)=>{
       }
       else
          fpson = false;
-   // else if(e.code =='KeyV')
-   //    alert(' '+ mousedx+ ' ' + mousedy + ' '+mousedz)
-
 });
 
 document.addEventListener('keyup',(e)=>{
@@ -334,15 +309,24 @@ document.addEventListener('keyup',(e)=>{
    if(e.code.startsWith('Shift'))
       shift = false;
 });
-// SET THE CURRENT TIME IN SECONDS BEFORE RENDERING EACH FRAME.
-
 let startTime = Date.now();
 let lastFrameTime = 0;
 function animate(gl) {
+   let uTime;
    if(animating)
-      setUniform('1f', 'uTime', (Date.now() - startTime) / 1000);
+   {
+      uTime = (Date.now() - startTime) / 1000;
+      setUniform('1f', 'uTime', uTime);
+   }
    else
-      setUniform('1f', 'uTime', (lastTime - startTime) / 1000);
+   {
+      uTime = (lastTime - startTime) / 1000;
+      setUniform('1f', 'uTime', uTime);
+   }
+   setUniform('4f', 'Sph[3]', .9*Math.sin(uTime*.4),0.,.9*Math.cos(uTime*.4),.25);
+   setUniform('4f', 'Sph[2]', .22*Math.sin(uTime*1.2),0.05,.22*Math.cos(uTime*1.2),.05);
+   setUniform('4f', 'Sph[0]', 0,0.05*Math.cos(uTime + 1.),.045*Math.cos(uTime),.15);
+   setUniform('4f', 'Sph[1]', 0,0.,0,.25);
 }
 let start;
 requestAnimationFrame(fpscounter);
