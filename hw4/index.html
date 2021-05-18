@@ -1,0 +1,112 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js" crossorigin="anonymous"></script>
+<script src=lib4.header.js></script>
+<script src=lib4.js></script>
+<style>
+ .ace_gutter-layer {
+   /* original width is 48px */
+   width: 25px !important;
+ }
+ 
+ .ace_gutter-layer > * {
+   /* 48 - 32 = 16 */
+   margin-left: 0;
+ }
+ .ace_gutter-cell {
+  padding-left: 0 !important;
+  padding-right: 3px !important;
+ }
+ .code{ 
+    font-family: "monaco, menlo, ubuntu mono, consolas, source-code-pro" ;
+    }
+ </style>
+
+
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag!! LOADED IN lib2.js -------->
+
+<font size=7 color=#909090>
+
+   StarCraft RTX 
+
+<img id="rtx" style="float:right;" src="./RTXon.svg" type="image/svg+xml"
+   alt="Turn Ray Tracing On/OFF" title="Turn Ray Tracing On/OFF" height=60px /img>
+<div id="fps" style="font-size:25;float:right;margin-right:18px;"></div>
+<TABLE cellspacing=0 cellpadding=0><TR>
+<td><font color=red size=5><div id=errorMessage></div></font></td>
+</TR><TR>
+<table cellspacing=0>
+<tr>
+<td valign=top>
+<div id="ace" style="width:800px;height:2200px;"></div>
+</td><td valign=top>
+<body bgcolor=white text=black link=black alink=blue vlink=blue>
+   <center>
+      <!!--- SUPER SAMPLING THE W/H PARAMS FOR CANVAS ARE RENDER SIZE, IN THE CSS IS ACTUAL(DISPLAY) SIZE.--->
+   <canvas id='canvas1' style=" overflow: hidden !important; width: 600px !important; height:600px !important;" width=599 height=599></canvas>
+   </center>
+</body>
+<div id="controls">
+<input type="number" id="ins" style="margin-left:0px;font-size:24px;width:35px;height:45px" value="5" max="5" min = "1">
+<button id="bns" style="margin-left:0px;font-size:24px;width:105px;height:45px">Spheres</button>
+<input type="number" id="insamp" style="margin-left:2px;font-size:24px;width:60px;height:45px" value="1" max="4" min = "0.25" step="0.2">
+<button id="bnsamp" style="margin-left:0px;font-size:24px;width:190px;height:45px">Super Sampling</button>
+<button id="bnfs" style="margin-left:2px;font-size:24px;width:180px;height:45px">Fullscreen</button>
+<button id="clrsel" style="margin-left:0px;font-size:24px;width:180px;height:45px">Clear Selection</button>
+<button id="reset" style="margin-left:0px;font-size:24px;width:100px;height:45px">Reset</button>
+<div style=\'font-size:25px\'>
+
+   <font color=#909090>
+  
+   <i style="font-size:25px;">What's new: </i>
+   <p style="font-size:20px;"> 
+   &nbsp;&nbsp;&nbsp;&nbsp;As before, drag on the canvas to rotate the scene, scroll on it to change focal point (perspective projection). 
+   Double click it to pause/resume.<br>
+   I now added Fullscreen mode so that we can scroll on the canvas without scrolling the whole page and use single-key 
+   hotkeys without worrying about conflicts with the editor. <br>
+   &nbsp;&nbsp;&nbsp;&nbsp;<a style="color:red;">Now, you can select a sphere by clicking on it (literally, click the sphere on the canvas!). And drag it around 
+   to move it.</a><br>
+   &nbsp;&nbsp;&nbsp;&nbsp;When a sphere is selected, you can also scroll whe mouse wheel to change its radius, and <strong>in fullscreen mode</strong>, press B and F key to send 
+   it backward or forward <strong>according to your view point!</strong><br>
+   &nbsp;&nbsp;&nbsp;&nbsp;I also optimized the code a little bit, so that the transformation matrix is completely computed in CPU, 
+   and applied (multiplied) inside the <a href="./shader.vert">vertex shader</a>.<br>
+   &nbsp;&nbsp;&nbsp;&nbsp;I suggest moving spheres when pausing the scene by double clicking the canvas, otherwise the spheres are already moving.<br>
+   &nbsp;&nbsp;&nbsp;&nbsp;<strong>If you found the scene somehow clipped, it seems to be a bug of chromium, please simply click on 'Super Sampling' button
+    or refresh the page. Otherwise the interactions won't work because the coordinates are wrong.</strong>
+   </p>
+   <div id="howitworks">
+      <br>
+   <p style="font-size:20px;"> 
+      <i style="font-size:25px;">How it works:</i><br>
+      I used similar method in raytracing to find the sphere it hits.<br>
+      The transformation methods are implemented in <a href="./lib4.header.js">lib4.header.js</a><br>
+      Interaction parts are in <a href="./lib4.ext.js">lib4.ext.js</a><br>
+      <a href="./lib4.js">lib4.js</a> most contains initialization methods for the renderer.<br>
+      <a href="./index.html">index.html</a> is almost pure html.<br>
+   </p>
+   </div>
+
+   <p>
+</div>
+
+
+</div></td>
+</tr></table>
+</TR></TABLE>
+  
+
+<!!-------- YOU PROBABLY WANT TO CHANGE ANYTHING BELOW RIGHT NOW -------->
+   
+<script src="lib4.ext.js"></script>
+
+<script>
+   setInterval(() => {
+      if(window.vs != null && window.fs != null&& canvas1.setShaders === undefined)
+         gl_start(canvas1, vs, fs);
+   }, 200);
+</script>

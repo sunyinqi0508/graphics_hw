@@ -1,0 +1,21 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "Launch index.html",
+            "type": "chrome",
+            "request": "launch",
+            "file": "${workspaceFolder}/index.html",
+            "runtimeExecutable": "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+            "runtimeArgs": ["--args", "--allow-file-access-from-files"]
+        }, 
+        {
+            "name": "windows",
+            "type": "chrome",
+            "request": "launch",
+            "file": "${workspaceFolder}/index.html",
+            "runtimeExecutable": "C:/Users/sunyi/AppData/Local/Google/Chrome SxS/Application/chrome.exe",
+            "runtimeArgs": ["--args", "--allow-file-access-from-files"]
+        }
+    ]
+}

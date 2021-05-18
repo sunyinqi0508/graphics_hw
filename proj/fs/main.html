@@ -1,0 +1,111 @@
+<video src="pjsk.mp4" id="pjsk" hidden="true" muted="muted" loop="true" style="position:fixed; left:0; top:0;max-width:100%;min-width:100%;min-height: 100%;z-index: -100;"></video>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js" crossorigin="anonymous"></script>
+<script src=libX.header.js></script>
+<script src=libX.js></script>
+<style>
+ .ace_gutter-layer {
+   /* original width is 48px */
+   width: 25px !important;
+ }
+ 
+ .ace_gutter-layer > * {
+   /* 48 - 32 = 16 */
+   margin-left: 0;
+ }
+ .ace_gutter-cell {
+  padding-left: 0 !important;
+  padding-right: 3px !important;
+ }
+ .code{ 
+    font-family: "monaco, menlo, ubuntu mono, consolas, source-code-pro" ;
+    }
+ </style>
+
+
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+<!!-------- FRAGMENT SHADER: MOVED TO ./shader.frag!! LOADED IN lib2.js -------->
+
+<font size=7 color=#909090>
+
+   Final Project
+
+<img id="rtx" style="float:right;" src="./RTXon.svg" type="image/svg+xml"
+   alt="Turn Ray Tracing On/OFF" title="Turn Ray Tracing On/OFF" height=60px /img>
+<div id="fps" style="font-size:25;float:right;margin-right:18px;"></div>
+<TABLE cellspacing=0 cellpadding=0 style="width:50%"><TR>
+<td><font color=red size=5><div id=errorMessage></div></font></td>
+</TR><TR>
+<table cellspacing=0>
+<tr>
+<td valign=top>
+<div id="ace" style="opacity:90%;width:500px;height:600px;"hidden=true></div>
+<div id = 'usage' style="opacity:90%;width:500px;height:600px;">
+      <font color=#000000>
+      <i style="font-size:28px;">What's new: </i>
+      <ul style="font-size:24px;">
+         <p> 
+            In the final project I implemented Flares and glowing object for ray tracing. The technical 
+            details can be found in <a href="http://resources.mpi-inf.mpg.de/lensflareRendering/">this paper</a> from 
+            SIGGRAPH 2011.<br>
+            I also implemented a glassy filter by randomly bending the rays shot from the screen. The idea was from my 
+            failed attempt to create flares which I thought was caused by diffusion of lights caused by fogs on my glasses. 
+            But this actually resembles the images we saw through a <a href="https://www.google.com.hk/search?q=bumpy+glass">bumpy glass</a>. 
+            Because the light rays was randomly bent by refractions through it.<br>
+            Also, as usual, I integrated my homework compilation, since I put extra work into every single homeworks and I'm proud to show 
+            them in my final project.<br>
+            You may browse the source <a href="./fs">here</a>.<br>
+         </p>
+      </ul>
+      <p style="font-size:24px;"> 
+</div>
+</td><td valign=top style="background-color:azure;opacity: 100%;">
+<body bgcolor=white text=black link=black alink=blue vlink=blue>
+   <center>
+      <!!--- SUPER SAMPLING THE W/H PARAMS FOR CANVAS ARE RENDER SIZE, IN THE CSS IS ACTUAL(DISPLAY) SIZE.--->
+   <canvas id='canvas1' style=" background-color:#FFF7F8;opacity: 100%;overflow: hidden !important; width: 600px !important; height:600px !important;" width=1199 height=1199></canvas>
+   </center>
+</body>
+<div id="controls">
+<input type="number" id="ins" style="display:none;margin-left:0px;font-size:24px;width:35px;height:45px" value="5" max="5" min = "1">
+<button id="bns" style="display:none;margin-left:0px;font-size:24px;width:105px;height:45px">Spheres</button>
+<input type="number" id="insamp" style="margin-left:2px;font-size:24px;width:60px;height:45px" value="2" max="10" min = "0.1" step="0.2">
+<button id="bnsamp" style="margin-left:0px;font-size:24px;width:190px;height:45px">Super Sampling</button>
+<button id="bnfs" style="margin-left:2px;font-size:24px;width:180px;height:45px">Fullscreen</button>
+<button id="clrsel" style="display:none;margin-left:0px;font-size:24px;width:180px;height:45px">Clear Selection</button>
+<button id="reset" style="margin-left:0px;font-size:24px;width:100px;height:45px">Reset</button>
+<button id="mov" style="margin-left:0px;font-size:24px;width:180px;height:45px">Move Lighting</button>
+<button id="pause" style="margin-left:0px;font-size:24px;width:250px;height:45px">HW Compilation!</button>
+<button id="glsy" style="margin-left:0px;font-size:24px;width:200px;height:45px">Glassy</button>
+<div style='font-size:25px;'>
+
+   <!-- <font color=#000000>
+  
+   <i style="font-size:28px;">What's new: </i>
+   <p style="font-size:24px;"> 
+   </p> -->
+   <div id="howitworks">
+   </div>
+</div>
+
+
+</div></td>
+</tr></table>
+</TR></TABLE>
+  
+
+<!!-------- YOU PROBABLY WANT TO CHANGE ANYTHING BELOW RIGHT NOW -------->
+   
+<script src="libX.ext.js"></script>
+
+<script>
+   setInterval(() => {
+      if(window.vs != null && window.fs != null&& canvas1.setShaders === undefined)
+         gl_start(canvas1, vs, fs);
+   }, 200);
+</script>
